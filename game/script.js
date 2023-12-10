@@ -12,6 +12,10 @@ const defenders = [];
 const enemies = [];
 const enemyPositions = [];
 const projectiles = [];
+const resources = [];
+const winningScore = 50;
+
+
 let numberOfResource = 300;
 let enemyInterval = 600;
 let frame = 0;
@@ -116,8 +120,8 @@ class Defender {
 	constructor(x, y) {
 		this.x = x;
 		this.y = y;
-		this.width = cellSize;
-		this.height = cellSize;
+		this.width = cellSize - cellGap * 2;
+		this.height = cellSize - cellGap * 2;
 		this.shooting = false;
 		this.health = 100;
 		this.projectiles = [];
@@ -142,21 +146,6 @@ class Defender {
 	}
 }
 
-canvas.addEventListener("click", function () {
-	const gridPositionX = mouse.x - (mouse.x % cellSize);
-	const gridPositionY = mouse.y - (mouse.y % cellSize);
-	if (gridPositionY < cellSize) return;
-	for (let i = 0; i < defenders.length; i++) {
-		if (defenders[i].x === gridPositionX && defenders[i].y === gridPositionY)
-			return;
-	}
-	let defendersCost = 100;
-	if (numberOfResource >= defendersCost) {
-		defenders.push(new Defender(gridPositionX, gridPositionY));
-		numberOfResource -= defendersCost;
-    }
-});
-
 function handleDefenders() {
 	for (let i = 0; i < defenders.length; i++) {
 		defenders[i].draw();
@@ -180,27 +169,91 @@ function handleDefenders() {
 		}
 	}
 }
+// Floating Messages
+const floatingMessages = [];
+class floatingMessage {
+	constructor(value, x, y, size, color) {
+		this.value = value;
+		this.x = x;
+		this.y = y;
+		this.size = size;
+		this.lifeSpan = 0;
+		this.color = color;
+		this.opacity = 1;
+	}
+	update() {
+		this.y -= 0.3;
+		this.lifeSpan += 1;
+		if (this.opacity > 0.03) this.opacity -= 0.03;
+	}
+	draw() {
+		ctx.globalAlpha = this.opacity;
+		ctx.fillStyle = this.color;
+		ctx.font = this.size + "px Orbitron";
+		ctx.fillText(this.value, this.x, this.y);
+		ctx.globalAlpha = 1;
+	}
+}
+function handleFloatingMessages() {
+	for (let i = 0; i < floatingMessages.length; i++) {
+		floatingMessages[i].update();
+		floatingMessages[i].draw();
+		if (floatingMessages[i].lifeSpan >= 50) {
+			floatingMessages.splice(i, 1);
+			i--;
+		}
+	}
+}
 // Enemies
+const enemyTypes = [];
+// const enemy1 = new Image();
+// enemy1.src = "game/img/enemy1.png";
+// enemyTypes.push(enemy1);
+const enemy2 = new Image();
+enemy2.src = "game/img/enemy2.png";
+enemyTypes.push(enemy2);
 class Enemy {
 	constructor(verticalPosition) {
 		this.x = canvas.width;
 		this.y = verticalPosition;
-		this.width = cellSize;
-		this.height = cellSize;
+		this.width = cellSize - cellGap * 2;
+		this.height = cellSize - cellGap * 2;
 		this.speed = Math.random() * 0.2 + 0.4;
 		this.movement = this.speed;
 		this.health = 100;
 		this.maxHealth = this.health;
+		this.enemyType = enemyTypes[0];
+		this.frameX = 0;
+		this.frameY = 0;
+		this.minFrame = 0;
+		this.maxFrame = 4;
+		this.spriteWidth = 256;
+		this.spriteHeight = 256;
 	}
 	update() {
 		this.x -= this.movement;
+		if (frame % 10 === 0) {
+			if (this.frameX < this.maxFrame) this.frameX++;
+			else this.frameX = this.minFrame;
+		}
 	}
 	draw() {
 		ctx.fillStyle = "red";
 		ctx.fillRect(this.x, this.y, this.width, this.height);
 		ctx.fillStyle = "black";
 		ctx.font = "30px Orbitron";
-		ctx.fillText(Math.floor(this.health), this.x + 15, this.y + 15);
+		ctx.fillText(Math.floor(this.health), this.x + 15, this.y + 30);
+		ctx.drawImage(
+			this.enemyType,
+			this.frameX * this.spriteWidth,
+			0,
+			this.spriteWidth,
+			this.spriteHeight,
+			this.x,
+			this.y,
+			this.width,
+			this.height 
+		);
 	}
 }
 function handleEnemies() {
@@ -212,6 +265,8 @@ function handleEnemies() {
 		}
 		if (enemies[i].health <= 0) {
 			let gainedResources = enemies[i].maxHealth / 10
+			floatingMessages.push(new floatingMessage('+' + gainedResources, enemies[i].x, enemies[i].y, 30, 'black'))
+			floatingMessages.push(new floatingMessage('+' + gainedResources, 250, 50, 30, 'gold'))
 			numberOfResource += gainedResources
 			score += gainedResources
             const findThisIndex = enemyPositions.indexOf(enemies[i].y)
@@ -221,8 +276,8 @@ function handleEnemies() {
             
 		}
 	}
-	if (frame % enemyInterval === 0) {
-		let verticalPosition = Math.floor(Math.random() * 5 + 1) * cellSize;
+	if (frame % enemyInterval === 0 && score < winningScore) {
+		let verticalPosition = Math.floor(Math.random() * 5 + 1) * cellSize + cellGap;
 		enemies.push(new Enemy(verticalPosition))
 		enemyPositions.push(verticalPosition);
 		if (enemyInterval > 120) {
@@ -231,6 +286,39 @@ function handleEnemies() {
 	}
 }
 // Resources
+const amounts = [20, 30, 40]
+class Resources {
+	constructor() {
+		this.x = Math.random() * (canvas.width - cellSize)
+		this.y = (Math.floor(Math.random() * 5) + 1) * cellSize + 25
+		this.width = cellSize * 0.6
+		this.height = cellSize * 0.6
+		this.amount = amounts[Math.floor(Math.random() * amounts.length)]
+	}
+	draw() {
+		ctx.fillStyle = 'yellow'
+		ctx.fillRect(this.x, this.y, this.width, this.height)
+		ctx.fillStyle = 'black'
+		ctx.font = '20px Orbitron'
+		ctx.fillText(this.amount, this.x + 15, this.y + 25)
+	}
+}
+
+function handleResources() {
+	if (frame % 500 === 0 && score < winningScore) {
+		resources.push(new Resources())
+	}
+	for (let i = 0; i < resources.length; i++) {
+		resources[i].draw()
+		if (resources[i] && mouse.x && mouse.y && collection(resources[i], mouse)) {
+			numberOfResource += resources[i].amount
+			floatingMessages.push(new floatingMessage('+' + resources[i].amount, resources[i].x, resources[i].y, 30, 'black'))
+			floatingMessages.push(new floatingMessage('+' + resources[i].amount, 250, 50, 30, 'gold'))
+			resources.splice(i, 1)
+			i--
+		}
+	}
+}
 // Utilites
 function handleGameStatus() {
 	ctx.fillStyle = "gold";
@@ -242,16 +330,44 @@ function handleGameStatus() {
 		ctx.font = "90px Orbitron";
 		ctx.fillText("GAME OVER", 135, 330);
 	}
+	if (score >= winningScore && enemies.length === 0) {
+		ctx.fillStyle = "black";
+		ctx.font = "60px Orbitron";
+		ctx.fillText("LEVEL COMPLETE", 130, 300);
+		ctx.font = "30px Orbitron";
+		ctx.fillText("You win with " + score + " points!", 134, 340);
+	}
 }
+
+canvas.addEventListener("click", function () {
+	const gridPositionX = mouse.x - (mouse.x % cellSize) + cellGap
+	const gridPositionY = mouse.y - (mouse.y % cellSize) + cellGap
+	if (gridPositionY < cellSize) return;
+	for (let i = 0; i < defenders.length; i++) {
+		if (defenders[i].x === gridPositionX && defenders[i].y === gridPositionY)
+			return;
+	}
+	let defendersCost = 100;
+	if (numberOfResource >= defendersCost) {
+		defenders.push(new Defender(gridPositionX, gridPositionY));
+		numberOfResource -= defendersCost;
+    } else {
+		floatingMessages.push(new floatingMessage('need more resources', mouse.x, mouse.y, 20, 'blue'))
+	}
+});
+
+
 function animate() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.fillStyle = "blue";
 	ctx.fillRect(0, 0, controlBar.width, controlBar.height);
 	handleGameGrid();
 	handleDefenders();
+	handleResources();
 	handleProjectiles();
 	handleEnemies();
 	handleGameStatus();
+	handleFloatingMessages();
 	frame++;
 	if (!gameOver) requestAnimationFrame(animate);
 }
@@ -269,3 +385,7 @@ function collection(first, second) {
 		return true;
 	}
 }
+
+window.addEventListener("resize", function () {
+	canvasPosition = canvas.getBoundingClientRect();
+});
