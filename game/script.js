@@ -206,11 +206,11 @@ function handleFloatingMessages() {
 }
 // Enemies
 const enemyTypes = [];
-// const enemy1 = new Image();
-// enemy1.src = "game/img/enemy1.png";
-// enemyTypes.push(enemy1);
+const enemy1 = new Image();
+enemy1.src = '/game/img/enemy1.png';
+enemyTypes.push(enemy1);
 const enemy2 = new Image();
-enemy2.src = "game/img/enemy2.png";
+enemy2.src = '/game/img/enemy2.png';
 enemyTypes.push(enemy2);
 class Enemy {
 	constructor(verticalPosition) {
@@ -222,13 +222,13 @@ class Enemy {
 		this.movement = this.speed;
 		this.health = 100;
 		this.maxHealth = this.health;
-		this.enemyType = enemyTypes[0];
+		this.enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
 		this.frameX = 0;
 		this.frameY = 0;
 		this.minFrame = 0;
 		this.maxFrame = 4;
-		this.spriteWidth = 256;
-		this.spriteHeight = 256;
+		this.spriteWidth = 245;
+		this.spriteHeight = 362;
 	}
 	update() {
 		this.x -= this.movement;
@@ -238,8 +238,8 @@ class Enemy {
 		}
 	}
 	draw() {
-		ctx.fillStyle = "red";
-		ctx.fillRect(this.x, this.y, this.width, this.height);
+		// ctx.fillStyle = "red";
+		// ctx.fillRect(this.x, this.y, this.width, this.height);
 		ctx.fillStyle = "black";
 		ctx.font = "30px Orbitron";
 		ctx.fillText(Math.floor(this.health), this.x + 15, this.y + 30);
